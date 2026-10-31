@@ -1,0 +1,1349 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Rubik's Cube</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080d18;color:white;font-family:Arial;overflow:hidden;touch-action:none}
+#view{position:absolute;inset:0}
+header{position:absolute;top:17px;width:100%;text-align:center;pointer-events:none;z-index:2}
+h1{font-size:23px;letter-spacing:4px;margin:0}
+.sub{font-size:11px;color:#8191aa;margin-top:6px}
+#hint{position:absolute;top:75px;width:100%;text-align:center;color:#8292aa;font-size:11px;pointer-events:none}
+#faceLabel{position:absolute;top:105px;width:100%;text-align:center;color:#b8c9e2;font-size:12px;letter-spacing:2px;pointer-events:none}
+#speedPanel{
+ position:absolute;top:12px;right:12px;z-index:6;
+ display:flex;flex-direction:column;align-items:center;gap:5px;
+ background:#0d1728ed;border:1px solid #354966;border-radius:12px;
+ padding:7px 9px;width:205px;pointer-events:auto
+}
+.mode-tabs{display:flex;width:100%;gap:4px}
+.mode-tab{
+ flex:1;padding:7px 4px;border:1px solid #405879;border-radius:7px;
+ background:#14243a;color:#9eb2cf;font-size:9px;font-weight:bold;
+ letter-spacing:.5px;touch-action:manipulation
+}
+.mode-tab.active{background:#28517d;color:white;border-color:#6b9bd0}
+.speed-stats{display:grid;grid-template-columns:1.55fr .65fr .65fr;align-items:center;gap:4px;width:100%;min-width:0}
+.stat{text-align:center;min-width:0;overflow:hidden}
+.stat-value{font-size:16px;font-weight:bold;font-variant-numeric:tabular-nums;letter-spacing:.5px;white-space:nowrap}
+.stat-label{font-size:7px;color:#8298b7;letter-spacing:1px;margin-top:3px}
+#timerDisplay{font-size:15px;letter-spacing:0}
+.speed-actions{display:flex;gap:5px;width:100%}
+.speed-button{
+ flex:1;padding:7px 5px;border:1px solid #527096;border-radius:7px;
+ background:#1a304d;color:white;font-size:9px;font-weight:bold;
+ letter-spacing:.7px;touch-action:manipulation
+}
+.speed-button:active{background:#32639b;transform:scale(.97)}
+#scrambleText{font-size:8px;color:#9eb2cf;max-width:185px;text-align:center;line-height:1.4;max-height:34px;overflow:auto}
+#status{
+ position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+ background:#111b2cdd;border:1px solid #293a55;padding:7px 12px;
+ border-radius:12px;color:#a9bad2;font-size:10px;
+ pointer-events:none;white-space:nowrap;z-index:3
+}
+#error{position:absolute;top:40%;left:10%;width:80%;text-align:center;color:#ff7777;z-index:10}
+#menuButton{
+ position:absolute;top:12px;left:12px;z-index:8;
+ border:1px solid #405879;border-radius:9px;background:#172943ee;
+ color:white;padding:9px 12px;font-size:11px;letter-spacing:1px;
+ touch-action:manipulation
+}
+#menuButton:active{background:#32639b}
+.side-panel{
+ position:absolute;top:50%;transform:translateY(-50%);
+ display:flex;flex-direction:column;gap:7px;padding:9px 7px;
+ background:#0d1728dd;border:1px solid #293d59;
+ border-radius:15px;z-index:5;user-select:none
+}
+#twoLeft,#threeLeft,#fourLeft,#fiveLeft{left:7px}
+#twoRight,#threeRight,#fourRight,#fiveRight{right:7px}
+.group-label{color:#8298b7;font-size:8px;letter-spacing:1px;text-align:center;white-space:nowrap}
+.control-grid{display:grid;grid-template-columns:repeat(3,37px);grid-template-rows:repeat(3,39px);gap:3px}
+.turn{
+ width:37px;height:39px;border:1px solid #405879;border-radius:9px;
+ background:#172943ee;color:white;font-size:21px;font-weight:bold;
+ display:flex;align-items:center;justify-content:center;
+ box-shadow:0 3px 9px #0007;-webkit-tap-highlight-color:transparent;
+ touch-action:manipulation;cursor:pointer;user-select:none;padding:0
+}
+.turn:active{background:#32639b;transform:scale(.93)}
+.turn.empty{visibility:hidden;pointer-events:none}
+.control-group{display:flex;flex-direction:column;align-items:center;gap:7px}
+.button-pair{display:flex;gap:5px}
+.two-panel{gap:20px;padding:10px 8px}
+.two-panel .turn{width:43px;height:46px;font-size:24px;border-radius:11px}
+.four-panel{padding:8px 5px;gap:6px}
+.four-grid{display:grid;grid-template-columns:repeat(4,27px);grid-template-rows:repeat(4,32px);gap:2px}
+.four-grid .turn{width:27px;height:32px;font-size:17px;border-radius:7px}
+.five-panel{padding:7px 4px;gap:5px}
+.five-grid{display:grid;grid-template-columns:repeat(5,23px);grid-template-rows:repeat(5,28px);gap:2px}
+.five-grid .turn{width:23px;height:28px;font-size:15px;border-radius:6px}
+#cubeControls{
+ position:absolute;left:50%;bottom:45px;transform:translateX(-50%);
+ display:flex;align-items:center;gap:12px;padding:9px 13px;
+ background:#0d1728ed;border:1px solid #354966;border-radius:15px;z-index:5
+}
+.cube-button{
+ width:48px;height:42px;border:1px solid #527096;border-radius:10px;
+ background:#1a304d;color:white;font-size:25px;font-weight:bold;
+ touch-action:manipulation;cursor:pointer
+}
+.cube-button:active{background:#32639b;transform:scale(.94)}
+.cube-label{font-size:9px;color:#9eb2cf;letter-spacing:1px;white-space:nowrap}
+#startMenu{
+ position:absolute;inset:0;z-index:20;display:flex;align-items:center;
+ justify-content:center;background:radial-gradient(ellipse at center,#14243d 0%,#080d18 72%)
+}
+.menu-card{
+ width:min(420px,88vw);padding:26px 22px;background:#0d1728;
+ border:1px solid #354966;border-radius:20px;text-align:center;
+ box-shadow:0 15px 60px #0008
+}
+.menu-title{font-size:27px;letter-spacing:4px;font-weight:bold}
+.menu-sub{color:#8298b7;font-size:11px;letter-spacing:2px;margin:9px 0 20px}
+.mode-choice{
+ width:100%;padding:15px 12px;margin:6px 0;border:1px solid #405879;
+ border-radius:13px;background:#172943;color:white;text-align:left;
+ cursor:pointer;touch-action:manipulation
+}
+.mode-choice:active{background:#32639b;transform:scale(.98)}
+.mode-name{font-size:18px;font-weight:bold;letter-spacing:2px}
+.mode-description{font-size:10px;color:#9eb2cf;margin-top:6px}
+.menu-footer{color:#61738e;font-size:10px;margin-top:15px;letter-spacing:1px}
+.hidden{display:none!important}
+@media(max-width:600px){
+ #twoLeft,#threeLeft,#fourLeft,#fiveLeft{left:3px}
+ #twoRight,#threeRight,#fourRight,#fiveRight{right:3px}
+ .side-panel{padding:7px 4px;gap:6px}
+ .control-grid{grid-template-columns:repeat(3,32px);grid-template-rows:repeat(3,35px);gap:2px}
+ .turn{width:32px;height:35px;font-size:19px}
+ .group-label{font-size:7px}
+ .two-panel{padding:8px 5px;gap:15px}
+ .two-panel .turn{width:37px;height:42px;font-size:21px}
+ .four-panel{padding:7px 3px;gap:5px}
+ .four-grid{grid-template-columns:repeat(4,25px);grid-template-rows:repeat(4,30px);gap:2px}
+ .four-grid .turn{width:25px;height:30px;font-size:16px}
+ .five-panel{padding:6px 3px;gap:4px}
+ .five-grid{grid-template-columns:repeat(5,21px);grid-template-rows:repeat(5,25px);gap:2px}
+ .five-grid .turn{width:21px;height:25px;font-size:14px}
+ #cubeControls{bottom:43px;gap:8px;padding:7px 9px}
+ .cube-button{width:42px;height:38px}
+ #menuButton{top:8px;left:8px;padding:8px 10px}
+ #speedPanel{top:65px;right:7px;width:165px;padding:6px;gap:4px}
+ #timerDisplay{font-size:13px}
+ .stat-value{font-size:14px}
+ #scrambleText{max-width:150px;font-size:7px}
+}
+@media(max-height:600px){
+ .side-panel{padding:5px 4px;gap:4px}
+ .control-grid{grid-template-rows:repeat(3,31px)}
+ .turn{height:31px}
+ .two-panel{gap:9px;padding:6px 5px}
+ .two-panel .turn{height:36px}
+ .four-grid{grid-template-rows:repeat(4,26px)}
+ .four-grid .turn{height:26px}
+ .five-grid{grid-template-rows:repeat(5,23px)}
+ .five-grid .turn{height:23px}
+ #cubeControls{bottom:37px}
+ #faceLabel{top:82px}
+ #hint{top:60px}
+}
+</style>
+</head>
+<body>
+<div id="view"></div>
+
+<header>
+ <h1>RUBIK'S CUBE</h1>
+ <div class="sub" id="modeSubtitle">INTERACTIVE 3D</div>
+</header>
+
+<div id="hint">DRAG TO ROTATE CAMERA · ARROWS TO TURN</div>
+<div id="faceLabel">DETECTING FACE...</div>
+<button id="menuButton" class="hidden">MENU</button>
+
+<div id="speedPanel" class="hidden">
+ <div class="mode-tabs">
+  <button class="mode-tab active" id="playTab">PLAY</button>
+  <button class="mode-tab" id="speedTab">SPEEDCUBING</button>
+ </div>
+ <div class="speed-stats hidden" id="speedStats">
+  <div class="stat"><div class="stat-value" id="timerDisplay">00:00.00</div><div class="stat-label">TIME</div></div>
+  <div class="stat"><div class="stat-value" id="moveDisplay">0</div><div class="stat-label">MOVES</div></div>
+  <div class="stat"><div class="stat-value" id="pbDisplay">--</div><div class="stat-label">BEST</div></div>
+ </div>
+ <div class="speed-actions"><button class="speed-button" id="scrambleButton">NEW SCRAMBLE</button></div>
+ <div id="scrambleText">PRESS NEW SCRAMBLE TO BEGIN</div>
+</div>
+
+<div id="twoLeft" class="side-panel two-panel hidden">
+ <div class="control-group">
+  <div class="group-label">VERTICAL UP</div>
+  <div class="button-pair">
+   <button class="turn" data-kind="two" data-edge="left" data-dir="up">↑</button>
+   <button class="turn" data-kind="two" data-edge="right" data-dir="up">↑</button>
+  </div>
+ </div>
+ <div class="control-group">
+  <div class="group-label">VERTICAL DOWN</div>
+  <div class="button-pair">
+   <button class="turn" data-kind="two" data-edge="left" data-dir="down">↓</button>
+   <button class="turn" data-kind="two" data-edge="right" data-dir="down">↓</button>
+  </div>
+ </div>
+</div>
+
+<div id="twoRight" class="side-panel two-panel hidden">
+ <div class="control-group">
+  <div class="group-label">HORIZONTAL LEFT</div>
+  <div class="button-pair">
+   <button class="turn" data-kind="two" data-edge="top" data-dir="left">←</button>
+   <button class="turn" data-kind="two" data-edge="bottom" data-dir="left">←</button>
+  </div>
+ </div>
+ <div class="control-group">
+  <div class="group-label">HORIZONTAL RIGHT</div>
+  <div class="button-pair">
+   <button class="turn" data-kind="two" data-edge="top" data-dir="right">→</button>
+   <button class="turn" data-kind="two" data-edge="bottom" data-dir="right">→</button>
+  </div>
+ </div>
+</div>
+
+<div id="threeLeft" class="side-panel hidden">
+ <div class="group-label">PAD 1 · VERTICAL / MIDDLE</div>
+ <div class="control-grid">
+  <button class="turn" data-axis="right" data-layer="-1" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="0" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="1" data-dir="up">↑</button>
+  <button class="turn" data-axis="up" data-layer="0" data-dir="left">←</button>
+  <button class="turn empty" tabindex="-1"></button>
+  <button class="turn" data-axis="up" data-layer="0" data-dir="right">→</button>
+  <button class="turn" data-axis="right" data-layer="-1" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="0" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="1" data-dir="down">↓</button>
+ </div>
+</div>
+
+<div id="threeRight" class="side-panel hidden">
+ <div class="group-label">PAD 2 · TOP / BOTTOM</div>
+ <div class="control-grid">
+  <button class="turn" data-axis="up" data-layer="1" data-dir="left">←</button>
+  <button class="turn empty" tabindex="-1"></button>
+  <button class="turn" data-axis="up" data-layer="1" data-dir="right">→</button>
+  <button class="turn empty" tabindex="-1"></button>
+  <button class="turn empty" tabindex="-1"></button>
+  <button class="turn empty" tabindex="-1"></button>
+  <button class="turn" data-axis="up" data-layer="-1" data-dir="left">←</button>
+  <button class="turn empty" tabindex="-1"></button>
+  <button class="turn" data-axis="up" data-layer="-1" data-dir="right">→</button>
+ </div>
+</div>
+
+<div id="fourLeft" class="side-panel four-panel hidden">
+ <div class="group-label">PAD 1 · VERTICAL</div>
+ <div class="four-grid">
+  <button class="turn" data-axis="right" data-layer="-1.5" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="-0.5" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="0.5" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="1.5" data-dir="up">↑</button>
+  <button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button>
+  <button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button>
+  <button class="turn" data-axis="right" data-layer="-1.5" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="-0.5" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="0.5" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="1.5" data-dir="down">↓</button>
+ </div>
+</div>
+
+<div id="fourRight" class="side-panel four-panel hidden">
+ <div class="group-label">PAD 2 · HORIZONTAL</div>
+ <div class="four-grid">
+  <button class="turn" data-axis="up" data-layer="1.5" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="1.5" data-dir="right">→</button>
+  <button class="turn" data-axis="up" data-layer="0.5" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="0.5" data-dir="right">→</button>
+  <button class="turn" data-axis="up" data-layer="-0.5" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="-0.5" data-dir="right">→</button>
+  <button class="turn" data-axis="up" data-layer="-1.5" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="-1.5" data-dir="right">→</button>
+ </div>
+</div>
+
+<div id="fiveLeft" class="side-panel five-panel hidden">
+ <div class="group-label">PAD 1 · VERTICAL</div>
+ <div class="five-grid">
+  <button class="turn" data-axis="right" data-layer="-2" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="-1" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="0" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="1" data-dir="up">↑</button>
+  <button class="turn" data-axis="right" data-layer="2" data-dir="up">↑</button>
+  <button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button>
+  <button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button>
+  <button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button>
+  <button class="turn" data-axis="right" data-layer="-2" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="-1" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="0" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="1" data-dir="down">↓</button>
+  <button class="turn" data-axis="right" data-layer="2" data-dir="down">↓</button>
+ </div>
+</div>
+
+<div id="fiveRight" class="side-panel five-panel hidden">
+ <div class="group-label">PAD 2 · HORIZONTAL</div>
+ <div class="five-grid">
+  <button class="turn" data-axis="up" data-layer="2" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="2" data-dir="right">→</button>
+  <button class="turn" data-axis="up" data-layer="1" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="1" data-dir="right">→</button>
+  <button class="turn" data-axis="up" data-layer="0" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="0" data-dir="right">→</button>
+  <button class="turn" data-axis="up" data-layer="-1" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="-1" data-dir="right">→</button>
+  <button class="turn" data-axis="up" data-layer="-2" data-dir="left">←</button><button class="turn empty"></button><button class="turn empty"></button><button class="turn empty"></button><button class="turn" data-axis="up" data-layer="-2" data-dir="right">→</button>
+ </div>
+</div>
+
+<div id="cubeControls" class="hidden">
+ <button class="cube-button" id="cubeLeft">⟲</button>
+ <div class="cube-label">ROTATE WHOLE CUBE</div>
+ <button class="cube-button" id="cubeRight">⟳</button>
+</div>
+
+<div id="status">SELECT A CUBE</div>
+<div id="error"></div>
+
+<div id="startMenu">
+ <div class="menu-card">
+  <div class="menu-title">RUBIK'S CUBE</div>
+  <div class="menu-sub">CHOOSE YOUR CUBE</div>
+  <button class="mode-choice" data-select="2"><div class="mode-name">2 × 2 × 2</div><div class="mode-description">POCKET CUBE · ORIGINAL CONTROLS</div></button>
+  <button class="mode-choice" data-select="3"><div class="mode-name">3 × 3 × 3</div><div class="mode-description">STANDARD CUBE · ADVANCED CONTROLS</div></button>
+  <button class="mode-choice" data-select="4"><div class="mode-name">4 × 4 × 4</div><div class="mode-description">REVENGE CUBE · INNER LAYERS</div></button>
+  <button class="mode-choice" data-select="5"><div class="mode-name">5 × 5 × 5</div><div class="mode-description">PROFESSOR'S CUBE · FIVE LAYERS</div></button>
+  <div class="menu-footer">INTERACTIVE 3D CUBE</div>
+ </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+"use strict";
+
+const $=id=>document.getElementById(id);
+const status=$("status"),error=$("error"),faceLabel=$("faceLabel");
+const startMenu=$("startMenu"),timerDisplay=$("timerDisplay");
+const moveDisplay=$("moveDisplay"),pbDisplay=$("pbDisplay");
+const scrambleText=$("scrambleText");
+
+if(typeof THREE==="undefined"){
+ error.textContent="Three.js failed to load. Check your internet connection.";
+ status.textContent="LIBRARY ERROR";
+ return;
+}
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x080d18);
+
+const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,100);
+let radius=9.5,cameraOffset=new THREE.Vector3(),cameraUp=new THREE.Vector3(0,1,0);
+
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+
+const canvas=renderer.domElement;
+$("view").appendChild(canvas);
+
+scene.add(new THREE.AmbientLight(0xffffff,1.6));
+
+const light=new THREE.DirectionalLight(0xffffff,2.5);
+light.position.set(5,8,6);
+scene.add(light);
+
+const fillLight=new THREE.DirectionalLight(0xb8d5ff,1.1);
+fillLight.position.set(-5,-3,-5);
+scene.add(fillLight);
+
+const rimLight=new THREE.DirectionalLight(0xffffff,1.5);
+rimLight.position.set(0,5,-7);
+scene.add(rimLight);
+
+let mode=0,cubies=[],activeFace=null,moveQueue=[],busy=false,generation=0;
+let scrambleInProgress=false;
+let speedMode=false,timerRunning=false,timerFinished=false;
+let timerStart=0,finalTime=0,inspectionEnd=0,moveCount=0;
+
+const isTwo=()=>mode===2;
+const root=new THREE.Group();
+scene.add(root);
+
+const COLORS={
+ R:0xe53935,L:0xff851b,U:0xffffff,
+ D:0xffdf24,F:0x20c56a,B:0x2875ff
+};
+
+const FACE_NAMES={
+ "1,0,0":"RIGHT","-1,0,0":"LEFT",
+ "0,1,0":"TOP","0,-1,0":"BOTTOM",
+ "0,0,1":"FRONT","0,0,-1":"BACK"
+};
+
+const LOCAL_AXES=[
+ new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),
+ new THREE.Vector3(0,1,0),new THREE.Vector3(0,-1,0),
+ new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)
+];
+
+function basicMaterial(color){
+ return new THREE.MeshStandardMaterial({color,roughness:.35});
+}
+
+function resetCamera(){
+ radius=mode===2?7:mode===3?9.5:mode===4?11:13;
+ cameraOffset.set(
+  radius*Math.sin(1.02)*Math.sin(.59),
+  radius*Math.cos(1.02),
+  radius*Math.sin(1.02)*Math.cos(.59)
+ );
+ cameraUp.set(0,1,0);
+ updateCamera();
+}
+
+function updateCamera(){
+ camera.position.copy(cameraOffset);
+ camera.up.copy(cameraUp).normalize();
+ camera.lookAt(0,0,0);
+}
+
+function normalKey(n){
+ return [Math.round(n.x),Math.round(n.y),Math.round(n.z)].join(",");
+}
+
+function nearestLocalAxis(vector){
+ let best=LOCAL_AXES[0],score=-Infinity;
+ for(const axis of LOCAL_AXES){
+  const dot=axis.dot(vector);
+  if(dot>score){score=dot;best=axis;}
+ }
+ return best.clone();
+}
+
+function standardSticker(c,n,color){
+ const mat=new THREE.MeshStandardMaterial({
+  color,roughness:.3,metalness:0,emissive:color,
+  emissiveIntensity:.025,side:THREE.DoubleSide
+ });
+ const plate=new THREE.Mesh(new THREE.PlaneGeometry(.88,.88),mat);
+ plate.position.copy(n).multiplyScalar(.482);
+ plate.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),n);
+ plate.userData.normal=n.clone();
+ plate.userData.baseColor=color;
+ c.add(plate);
+}
+
+function buildStandardCube(size){
+ let values,outer;
+
+ if(size===2){values=[-.5,.5];outer=.5;}
+ else if(size===3){values=[-1,0,1];outer=1;}
+ else if(size===4){values=[-1.5,-.5,.5,1.5];outer=1.5;}
+ else{values=[-2,-1,0,1,2];outer=2;}
+
+ for(const x of values)
+ for(const y of values)
+ for(const z of values){
+  if(size===3&&x===0&&y===0&&z===0)continue;
+
+  const c=new THREE.Group();
+  c.position.set(x,y,z);
+
+  c.add(new THREE.Mesh(
+   new THREE.BoxGeometry(.96,.96,.96),
+   basicMaterial(0x090b10)
+  ));
+
+  if(x===outer)standardSticker(c,new THREE.Vector3(1,0,0),COLORS.R);
+  if(x===-outer)standardSticker(c,new THREE.Vector3(-1,0,0),COLORS.L);
+  if(y===outer)standardSticker(c,new THREE.Vector3(0,1,0),COLORS.U);
+  if(y===-outer)standardSticker(c,new THREE.Vector3(0,-1,0),COLORS.D);
+  if(z===outer)standardSticker(c,new THREE.Vector3(0,0,1),COLORS.F);
+  if(z===-outer)standardSticker(c,new THREE.Vector3(0,0,-1),COLORS.B);
+
+  root.add(c);
+  cubies.push(c);
+ }
+}
+
+function buildCube(size){
+ root.clear();
+ cubies=[];
+ buildStandardCube(size);
+}
+
+function detectFace(){
+ root.updateWorldMatrix(true,false);
+ const cameraLocal=root.worldToLocal(camera.position.clone()).normalize();
+ return nearestLocalAxis(cameraLocal);
+}
+
+function getCameraBasisLocal(){
+ const inverse=root.quaternion.clone().invert();
+
+ const right=new THREE.Vector3(1,0,0)
+  .applyQuaternion(camera.quaternion)
+  .applyQuaternion(inverse).normalize();
+
+ const up=new THREE.Vector3(0,1,0)
+  .applyQuaternion(camera.quaternion)
+  .applyQuaternion(inverse).normalize();
+
+ return {right,up};
+}
+
+/* Stable face-relative directions.
+   Both returned vectors are signed local cube axes and are perpendicular. */
+function getFaceBasis(normal){
+ const basis=getCameraBasisLocal();
+
+ const projectedRight=basis.right.clone()
+  .addScaledVector(normal,-basis.right.dot(normal));
+
+ const projectedUp=basis.up.clone()
+  .addScaledVector(normal,-basis.up.dot(normal));
+
+ const candidates=LOCAL_AXES.filter(axis=>
+  Math.abs(axis.dot(normal))<.5
+ );
+
+ let right=candidates[0];
+ let rightScore=-Infinity;
+
+ for(const axis of candidates){
+  const score=axis.dot(projectedRight);
+  if(score>rightScore){
+   rightScore=score;
+   right=axis;
+  }
+ }
+
+ let up=candidates.find(axis=>Math.abs(axis.dot(right))<.5);
+ let upScore=-Infinity;
+
+ for(const axis of candidates){
+  if(Math.abs(axis.dot(right))>.5)continue;
+  const score=axis.dot(projectedUp);
+  if(score>upScore){
+   upScore=score;
+   up=axis;
+  }
+ }
+
+ return {right:right.clone(),up:up.clone()};
+}
+
+function updateFaceHighlight(){
+ if(!cubies.length)return;
+
+ activeFace=detectFace();
+ faceLabel.textContent="ACTIVE FACE: "+
+  (FACE_NAMES[normalKey(activeFace)]||"FACE");
+
+ cubies.forEach(c=>{
+  c.children.forEach(s=>{
+   if(s.userData.baseColor===undefined)return;
+
+   const localNormal=s.userData.normal.clone()
+    .applyQuaternion(c.quaternion).normalize();
+
+   if(localNormal.dot(activeFace)>.99){
+    s.material.emissive.setHex(0x101820);
+    s.material.emissiveIntensity=.2;
+   }else{
+    s.material.emissive.setHex(0x000000);
+    s.material.emissiveIntensity=0;
+   }
+  });
+ });
+}
+
+/* SPEEDCUBING */
+
+function setSpeedMode(enabled){
+ speedMode=enabled;
+
+ $("playTab").classList.toggle("active",!enabled);
+ $("speedTab").classList.toggle("active",enabled);
+ $("speedStats").classList.toggle("hidden",!enabled);
+
+ if(!enabled){
+  timerRunning=false;
+  timerFinished=false;
+  inspectionEnd=0;
+  timerStart=0;
+  finalTime=0;
+  moveCount=0;
+  timerDisplay.textContent="00:00.00";
+  moveDisplay.textContent="0";
+  scrambleText.textContent="PLAY MODE · NO TIMER";
+ }else{
+  resetSpeedState();
+  scrambleText.textContent="SPEEDCUBING · PRESS NEW SCRAMBLE";
+ }
+
+ updateStatus();
+}
+
+function formatTime(ms){
+ ms=Math.max(0,ms);
+ const minutes=Math.floor(ms/60000);
+ const seconds=Math.floor(ms/1000)%60;
+ const hundredths=Math.floor(ms/10)%100;
+ return String(minutes).padStart(2,"0")+":"+
+  String(seconds).padStart(2,"0")+"."+
+  String(hundredths).padStart(2,"0");
+}
+
+function getPB(){
+ try{return Number(localStorage.getItem("rubik_pb_"+mode))||0;}
+ catch(e){return 0;}
+}
+
+function updatePBDisplay(){
+ const pb=getPB();
+ pbDisplay.textContent=pb?formatTime(pb):"--";
+}
+
+function updateSpeedDisplay(now=performance.now()){
+ if(!speedMode)return;
+
+ let shown=finalTime;
+ if(timerRunning)shown=now-timerStart;
+ timerDisplay.textContent=formatTime(shown);
+
+ if(inspectionEnd&&!timerRunning&&!timerFinished){
+  const remaining=Math.max(0,inspectionEnd-now);
+
+  if(remaining>0){
+   scrambleText.textContent="INSPECTION: "+Math.ceil(remaining/1000)+"s";
+  }else{
+   inspectionEnd=0;
+   scrambleText.textContent="INSPECTION OVER · READY";
+  }
+ }
+}
+
+function resetSpeedState(){
+ timerRunning=false;
+ timerFinished=false;
+ timerStart=0;
+ finalTime=0;
+ inspectionEnd=0;
+ moveCount=0;
+ timerDisplay.textContent="00:00.00";
+ moveDisplay.textContent="0";
+ updatePBDisplay();
+}
+
+function startSolve(){
+ if(!speedMode||timerRunning||timerFinished)return;
+ timerRunning=true;
+ timerStart=performance.now();
+ inspectionEnd=0;
+ scrambleText.textContent="SOLVING...";
+}
+
+function finishSolve(){
+ if(!speedMode||!timerRunning)return;
+
+ finalTime=performance.now()-timerStart;
+ timerRunning=false;
+ timerFinished=true;
+ inspectionEnd=0;
+
+ const oldPB=getPB();
+ let newPB=false;
+
+ if(!oldPB||finalTime<oldPB){
+  try{localStorage.setItem("rubik_pb_"+mode,String(Math.round(finalTime)));}
+  catch(e){}
+  newPB=true;
+ }
+
+ timerDisplay.textContent=formatTime(finalTime);
+ updatePBDisplay();
+ scrambleText.textContent=newPB?"NEW PERSONAL BEST!":"SOLVED!";
+ status.textContent=newPB?"NEW PERSONAL BEST!":"CUBE SOLVED!";
+}
+
+function isCubeSolved(){
+ const faces=[
+  new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),
+  new THREE.Vector3(0,1,0),new THREE.Vector3(0,-1,0),
+  new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)
+ ];
+
+ const outer=mode===2?.5:mode===3?1:mode===4?1.5:2;
+ const expectedCount=mode*mode;
+
+ for(const face of faces){
+  const colours=[];
+
+  for(const c of cubies)
+  for(const sticker of c.children){
+   if(sticker.userData.baseColor===undefined)continue;
+
+   const normal=sticker.userData.normal.clone()
+    .applyQuaternion(c.quaternion).normalize();
+
+   if(normal.dot(face)>.99&&c.position.dot(face)>outer-.05){
+    colours.push(sticker.userData.baseColor);
+   }
+  }
+
+  if(colours.length!==expectedCount)return false;
+  if(!colours.every(colour=>colour===colours[0]))return false;
+ }
+
+ return true;
+}
+
+/* MOVE QUEUE */
+
+function updateStatus(){
+ if(scrambleInProgress)status.textContent="SCRAMBLING...";
+ else if(busy)status.textContent="MOVES QUEUED: "+moveQueue.length;
+ else if(speedMode&&timerRunning)status.textContent="SOLVE IN PROGRESS";
+ else if(speedMode&&timerFinished)status.textContent="CUBE SOLVED";
+ else status.textContent="READY";
+}
+
+function finishMove(token){
+ if(token!==generation)return;
+ updateFaceHighlight();
+ busy=false;
+ runNextMove();
+}
+
+/* POSITION AND ORIENTATION SNAPPING */
+
+function snapCubie(c){
+ const snapPosition=value=>{
+  if(mode===4)return Math.round(value*2)/2;
+  const step=mode===2?.5:1;
+  return Math.round(value/step)*step;
+ };
+
+ c.position.set(
+  snapPosition(c.position.x),
+  snapPosition(c.position.y),
+  snapPosition(c.position.z)
+ );
+
+ // Snap the rotation matrix to the nearest 90-degree cube orientation.
+ const matrix=new THREE.Matrix4().makeRotationFromQuaternion(c.quaternion);
+ const elements=matrix.elements;
+ const indices=[0,1,2,4,5,6,8,9,10];
+
+ indices.forEach(i=>{
+  elements[i]=Math.round(elements[i]);
+ });
+
+ matrix.setPosition(0,0,0);
+ c.quaternion.setFromRotationMatrix(matrix).normalize();
+ c.updateMatrix();
+}
+
+/* 2x2 MOVE CALCULATION */
+
+function calculateTwoMove(edge,direction){
+ updateFaceHighlight();
+
+ const normal=activeFace.clone().normalize();
+ const {right,up}=getFaceBasis(normal);
+
+ let radial=null,swipe=null;
+
+ if(edge==="top")radial=up.clone();
+ if(edge==="bottom")radial=up.clone().negate();
+ if(edge==="left")radial=right.clone().negate();
+ if(edge==="right")radial=right.clone();
+
+ if(direction==="left")swipe=right.clone().negate();
+ if(direction==="right")swipe=right.clone();
+ if(direction==="up")swipe=up.clone();
+ if(direction==="down")swipe=up.clone().negate();
+
+ if(!radial||!swipe)return null;
+
+ const axisVector=nearestLocalAxis(radial);
+ const layer=Math.sign(radial.dot(axisVector));
+
+ const tangent=new THREE.Vector3()
+  .crossVectors(radial,normal).normalize();
+
+ const directionSign=Math.sign(tangent.dot(swipe));
+ if(!directionSign)return null;
+
+ return {
+  axisVector,
+  layer,
+  angle:directionSign*layer*Math.PI/2
+ };
+}
+
+/* 3x3 / 4x4 / 5x5 MOVE CALCULATION */
+
+function calculateThreeMove(move){
+ updateFaceHighlight();
+
+ const normal=activeFace.clone().normalize();
+ const basis=getFaceBasis(normal);
+
+ let axisVector;
+
+ if(move.axis==="right")axisVector=basis.right.clone();
+ else if(move.axis==="up")axisVector=basis.up.clone();
+ else if(move.axis==="normal")axisVector=normal.clone();
+ else return null;
+
+ const swipe={
+  left:basis.right.clone().negate(),
+  right:basis.right.clone(),
+  up:basis.up.clone(),
+  down:basis.up.clone().negate()
+ }[move.direction];
+
+ if(!swipe)return null;
+
+ let radial=normal.clone()
+  .addScaledVector(axisVector,-normal.dot(axisVector));
+
+ if(radial.lengthSq()<.1){
+  radial=basis.up.clone()
+   .addScaledVector(axisVector,-basis.up.dot(axisVector));
+ }
+
+ if(radial.lengthSq()<.1){
+  radial=basis.right.clone()
+   .addScaledVector(axisVector,-basis.right.dot(axisVector));
+ }
+
+ radial.normalize();
+
+ const tangent=new THREE.Vector3()
+  .crossVectors(axisVector,radial).normalize();
+
+ const directionSign=Math.sign(tangent.dot(swipe));
+ if(!directionSign)return null;
+
+ /*
+  IMPORTANT:
+  runLayerTurn measures position using dot(axisVector).
+  Since axisVector is already signed, the layer value must NOT
+  be multiplied by the sign of its dominant component.
+ */
+ return {
+  axisVector,
+  layer:move.layer,
+  angle:directionSign*Math.PI/2
+ };
+}
+
+/* ROTATE SELECTED CUBIES */
+
+function runLayerTurn(move,token){
+ const axisVector=move.axisVector.clone().normalize();
+ const layer=move.layer;
+ const angle=move.angle;
+
+ const selected=cubies.filter(c=>{
+  const coordinate=c.position.dot(axisVector);
+
+  if(mode===2)return Math.abs(coordinate-layer*.5)<.12;
+  return Math.abs(coordinate-layer)<.12;
+ });
+
+ const expected=
+  mode===2?4:
+  mode===3?(Math.abs(layer)<.1?8:9):
+  mode===4?16:25;
+
+ if(selected.length!==expected){
+  console.warn("Layer selection mismatch",{
+   selected:selected.length,
+   expected,
+   layer,
+   axis:axisVector.toArray()
+  });
+  finishMove(token);
+  return;
+ }
+
+ const originals=selected.map(c=>({
+  cubie:c,
+  position:c.position.clone(),
+  quaternion:c.quaternion.clone()
+ }));
+
+ const start=performance.now();
+ const duration=190;
+ const rotationAxis=axisVector.clone();
+
+ function animate(now){
+  if(token!==generation)return;
+
+  const t=Math.min((now-start)/duration,1);
+  const ease=1-Math.pow(1-t,3);
+
+  const partial=new THREE.Quaternion()
+   .setFromAxisAngle(rotationAxis,angle*ease);
+
+  for(const item of originals){
+   item.cubie.position.copy(item.position)
+    .applyAxisAngle(rotationAxis,angle*ease);
+
+   item.cubie.quaternion.copy(partial)
+    .multiply(item.quaternion);
+  }
+
+  if(t<1){
+   requestAnimationFrame(animate);
+   return;
+  }
+
+  for(const item of originals)snapCubie(item.cubie);
+  finishMove(token);
+ }
+
+ requestAnimationFrame(animate);
+}
+
+/* WHOLE CUBE TURN */
+
+function runCubeTurn(move,token){
+ updateFaceHighlight();
+
+ const {up}=getFaceBasis(activeFace);
+ const start=root.quaternion.clone();
+
+ const rotation=new THREE.Quaternion()
+  .setFromAxisAngle(up,move.angle);
+
+ const end=start.clone().multiply(rotation);
+ const startTime=performance.now();
+
+ function animate(now){
+  if(token!==generation)return;
+
+  const t=Math.min((now-startTime)/240,1);
+  const ease=1-Math.pow(1-t,3);
+
+  root.quaternion.copy(start).slerp(end,ease);
+
+  if(t<1){
+   requestAnimationFrame(animate);
+   return;
+  }
+
+  root.quaternion.copy(end);
+  finishMove(token);
+ }
+
+ requestAnimationFrame(animate);
+}
+
+function runNextMove(){
+ if(moveQueue.length===0){
+  busy=false;
+
+  if(scrambleInProgress){
+   scrambleInProgress=false;
+
+   if(speedMode){
+    inspectionEnd=performance.now()+15000;
+    scrambleText.textContent="INSPECTION: 15s";
+   }else{
+    scrambleText.textContent="SCRAMBLE COMPLETE · PLAY MODE";
+   }
+
+   status.textContent="SCRAMBLE COMPLETE";
+  }else if(speedMode&&timerRunning&&isCubeSolved()){
+   finishSolve();
+  }
+
+  updateFaceHighlight();
+  updateStatus();
+  return;
+ }
+
+ busy=true;
+ const move=moveQueue.shift();
+ const token=generation;
+ updateStatus();
+
+ if(move.type==="cube"){
+  runCubeTurn(move,token);
+  return;
+ }
+
+ let calculated;
+
+ if(move.type==="raw")calculated=move;
+ else calculated=isTwo()
+  ?calculateTwoMove(move.edge,move.direction)
+  :calculateThreeMove(move);
+
+ if(!calculated){
+  finishMove(token);
+  return;
+ }
+
+ runLayerTurn(calculated,token);
+}
+
+/* USER MOVES */
+
+function enqueueMove(move){
+ if(scrambleInProgress)return;
+
+ if(move.type==="turn"){
+  if(speedMode&&timerFinished){
+   status.textContent="GENERATE A NEW SCRAMBLE";
+   return;
+  }
+
+  if(speedMode){
+   if(!timerRunning)startSolve();
+   moveCount++;
+   moveDisplay.textContent=String(moveCount);
+  }
+ }
+
+ moveQueue.push(move);
+ updateStatus();
+
+ if(!busy)runNextMove();
+}
+
+/* SCRAMBLE */
+
+function generateScramble(){
+ if(!mode)return;
+
+ generation++;
+ moveQueue=[];
+ busy=false;
+ scrambleInProgress=false;
+
+ if(speedMode)resetSpeedState();
+
+ buildCube(mode);
+ root.quaternion.identity();
+ updateFaceHighlight();
+
+ const length=mode===2?11:mode===3?20:mode===4?40:60;
+ const axes=["x","y","z"];
+
+ const axisVectors={
+  x:new THREE.Vector3(1,0,0),
+  y:new THREE.Vector3(0,1,0),
+  z:new THREE.Vector3(0,0,1)
+ };
+
+ const fourLayers=[-1.5,-.5,.5,1.5];
+ const fiveLayers=[-2,-1,0,1,2];
+ const moves=[];
+ let previousFace="";
+
+ for(let i=0;i<length;i++){
+  let axis,layer,face;
+
+  do{
+   axis=axes[Math.floor(Math.random()*3)];
+
+   if(mode===4){
+    layer=fourLayers[Math.floor(Math.random()*fourLayers.length)];
+   }else if(mode===5){
+    layer=fiveLayers[Math.floor(Math.random()*fiveLayers.length)];
+   }else{
+    layer=Math.random()<.5?-1:1;
+   }
+
+   face=axis+layer;
+  }while(face===previousFace);
+
+  previousFace=face;
+
+  const angle=Math.random()<.5?Math.PI/2:-Math.PI/2;
+  let notation;
+
+  if(mode===4){
+   const layerLabel=
+    layer===-1.5?"L":
+    layer===-.5?"l":
+    layer===.5?"r":"R";
+   notation=axis.toUpperCase()+layerLabel+(angle<0?"'":"");
+  }else if(mode===5){
+   const layerLabel={
+    "-2":"L","-1":"l","0":"M","1":"r","2":"R"
+   }[String(layer)];
+   notation=axis.toUpperCase()+layerLabel+(angle<0?"'":"");
+  }else{
+   notation=axis.toUpperCase()+(layer===1?"":"'"); 
+  }
+
+  moves.push({
+   type:"raw",
+   axisVector:axisVectors[axis].clone(),
+   layer,
+   angle,
+   notation
+  });
+ }
+
+ scrambleText.textContent=moves.map(m=>m.notation).join(" ");
+ status.textContent="SCRAMBLING...";
+ scrambleInProgress=true;
+
+ moves.forEach(m=>moveQueue.push(m));
+ runNextMove();
+}
+
+/* BUTTONS */
+
+document.querySelectorAll(".turn:not(.empty)").forEach(button=>{
+ button.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  e.stopPropagation();
+ });
+
+ button.addEventListener("click",e=>{
+  e.preventDefault();
+  e.stopPropagation();
+
+  if(isTwo()){
+   enqueueMove({
+    type:"turn",
+    edge:button.dataset.edge,
+    direction:button.dataset.dir
+   });
+  }else{
+   enqueueMove({
+    type:"turn",
+    axis:button.dataset.axis,
+    layer:Number(button.dataset.layer),
+    direction:button.dataset.dir
+   });
+  }
+ });
+});
+
+$("cubeLeft").addEventListener("click",e=>{
+ e.preventDefault();
+ e.stopPropagation();
+ enqueueMove({type:"cube",angle:Math.PI/2});
+});
+
+$("cubeRight").addEventListener("click",e=>{
+ e.preventDefault();
+ e.stopPropagation();
+ enqueueMove({type:"cube",angle:-Math.PI/2});
+});
+
+$("scrambleButton").addEventListener("click",e=>{
+ e.preventDefault();
+ e.stopPropagation();
+ generateScramble();
+});
+
+$("playTab").addEventListener("click",()=>setSpeedMode(false));
+$("speedTab").addEventListener("click",()=>setSpeedMode(true));
+
+/* MODE SELECTION */
+
+function selectMode(size){
+ generation++;
+ moveQueue=[];
+ busy=false;
+ scrambleInProgress=false;
+
+ mode=size;
+ buildCube(size);
+ root.quaternion.identity();
+
+ resetCamera();
+ setSpeedMode(false);
+
+ $("modeSubtitle").textContent=
+  size===2?"2 × 2 × 2 · INTERACTIVE 3D":
+  size===3?"3 × 3 × 3 · INTERACTIVE 3D":
+  size===4?"4 × 4 × 4 · INTERACTIVE 3D":
+  "5 × 5 × 5 · INTERACTIVE 3D";
+
+ $("twoLeft").classList.toggle("hidden",!isTwo());
+ $("twoRight").classList.toggle("hidden",!isTwo());
+
+ $("threeLeft").classList.toggle("hidden",size!==3);
+ $("threeRight").classList.toggle("hidden",size!==3);
+
+ $("fourLeft").classList.toggle("hidden",size!==4);
+ $("fourRight").classList.toggle("hidden",size!==4);
+
+ $("fiveLeft").classList.toggle("hidden",size!==5);
+ $("fiveRight").classList.toggle("hidden",size!==5);
+
+ $("cubeControls").classList.remove("hidden");
+ $("speedPanel").classList.remove("hidden");
+ $("menuButton").classList.remove("hidden");
+
+ startMenu.classList.add("hidden");
+ scrambleText.textContent="PLAY MODE · NO TIMER";
+
+ updateFaceHighlight();
+ updateStatus();
+}
+
+document.querySelectorAll("[data-select]").forEach(button=>{
+ button.addEventListener("click",()=>{
+  selectMode(Number(button.dataset.select));
+ });
+});
+
+$("menuButton").addEventListener("click",()=>{
+ generation++;
+ moveQueue=[];
+ busy=false;
+ scrambleInProgress=false;
+ timerRunning=false;
+ inspectionEnd=0;
+ mode=0;
+
+ [
+  "twoLeft","twoRight","threeLeft","threeRight",
+  "fourLeft","fourRight","fiveLeft","fiveRight",
+  "cubeControls","speedPanel","menuButton"
+ ].forEach(id=>$(id).classList.add("hidden"));
+
+ status.textContent="SELECT A CUBE";
+ faceLabel.textContent="CHOOSE YOUR CUBE";
+ startMenu.classList.remove("hidden");
+});
+
+/* CAMERA ORBIT */
+
+function orbit(dx,dy){
+ const yaw=-dx*.007;
+ const pitch=dy*.007;
+
+ const yawQ=new THREE.Quaternion()
+  .setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
+
+ cameraOffset.applyQuaternion(yawQ);
+ cameraUp.applyQuaternion(yawQ);
+
+ const forward=cameraOffset.clone().negate().normalize();
+ const right=new THREE.Vector3()
+  .crossVectors(forward,cameraUp).normalize();
+
+ if(right.lengthSq()>.5){
+  const pitchQ=new THREE.Quaternion()
+   .setFromAxisAngle(right,pitch);
+
+  cameraOffset.applyQuaternion(pitchQ);
+  cameraUp.applyQuaternion(pitchQ);
+ }
+
+ updateCamera();
+ if(mode)updateFaceHighlight();
+}
+
+/* POINTER CONTROLS */
+
+let gesture=null;
+const pointers=new Map();
+
+function getCenter(){
+ let x=0,y=0;
+ pointers.forEach(p=>{x+=p.x;y+=p.y;});
+ return {x:x/pointers.size,y:y/pointers.size};
+}
+
+canvas.addEventListener("pointerdown",e=>{
+ if(!mode)return;
+
+ e.preventDefault();
+ canvas.setPointerCapture(e.pointerId);
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+
+ if(pointers.size===1){
+  gesture={mode:"orbit",lastX:e.clientX,lastY:e.clientY};
+ }else{
+  gesture={mode:"multi",previous:getCenter()};
+ }
+});
+
+canvas.addEventListener("pointermove",e=>{
+ if(!pointers.has(e.pointerId))return;
+
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(!gesture)return;
+
+ if(pointers.size>=2){
+  if(gesture.mode!=="multi"){
+   gesture={mode:"multi",previous:getCenter()};
+   return;
+  }
+
+  const now=getCenter();
+  orbit(now.x-gesture.previous.x,now.y-gesture.previous.y);
+  gesture.previous=now;
+  return;
+ }
+
+ if(gesture.mode==="orbit"){
+  orbit(e.clientX-gesture.lastX,e.clientY-gesture.lastY);
+ }
+
+ gesture.lastX=e.clientX;
+ gesture.lastY=e.clientY;
+});
+
+function releasePointer(e){
+ pointers.delete(e.pointerId);
+
+ if(pointers.size===0){
+  gesture=null;
+ }else if(pointers.size===1){
+  const p=[...pointers.values()][0];
+  gesture={mode:"orbit",lastX:p.x,lastY:p.y};
+ }
+}
+
+canvas.addEventListener("pointerup",releasePointer);
+canvas.addEventListener("pointercancel",releasePointer);
+canvas.addEventListener("lostpointercapture",releasePointer);
+
+/* RESIZE */
+
+window.addEventListener("resize",()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+});
+
+/* RENDER */
+
+resetCamera();
+status.textContent="SELECT A CUBE";
+
+function render(now){
+ requestAnimationFrame(render);
+ if(mode&&speedMode)updateSpeedDisplay(now);
+ renderer.render(scene,camera);
+}
+
+render();
+
+})();
+</script>
+</body>
+</html>
